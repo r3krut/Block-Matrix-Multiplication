@@ -9,7 +9,6 @@
 //size of matrix
 #define N 10
 
-
 void foo(std::string afn, std::string bfn)
 {
     size_t m_size = 4;
@@ -25,8 +24,8 @@ void foo(std::string afn, std::string bfn)
     std::ifstream Ainf(afn);
     std::ifstream Binf(bfn);
 
-    double a11, a12, a21, a22;
-    double b11, b12, b21, b22;
+    double a_els[b_size * b_size];
+    double b_els[b_size * b_size];
     int A_cnt = 0;
     int B_cnt = 0;
 
@@ -34,32 +33,28 @@ void foo(std::string afn, std::string bfn)
     {
         for(int j = 1; j <= i; j++)
         {
-            Ainf >> a11 >> a12 >> a21 >> a22;
             A[std::pair<int, int>(i, j)] = A_elements + A_cnt;
-            *(A_elements + A_cnt++) = a11;
-            *(A_elements + A_cnt++) = a12;
-            *(A_elements + A_cnt++) = a21;
-            *(A_elements + A_cnt++) = a22;
+            for (size_t k = 0; k < b_size * b_size; k++)
+            {
+                Ainf >> a_els[k];
+                *(A_elements + A_cnt++) = a_els[k];
+            }
 
-            Binf >> b11 >> b12 >> b21 >> b22;
             B[std::pair<int, int>(j, i)] = B_elements + B_cnt;
-            *(B_elements + B_cnt++) = b11;
-            *(B_elements + B_cnt++) = b12;
-            *(B_elements + B_cnt++) = b21;
-            *(B_elements + B_cnt++) = b22;
+            for (size_t k = 0; k < b_size * b_size; k++)
+            {
+                Binf >> b_els[k];
+                *(B_elements + B_cnt++) = b_els[k];
+            }
         }
     }
 
-    //create transparent blocks for A matrix
+    //create transpose blocks for A matrix
     for(int i = 1; i < m_size / b_size; i++)
     {
         for(int j = i + 1; j <= m_size / b_size; j++)
         {
-            double* block = new double[4];
-            *(block) = A[std::make_pair(j, i)][0];
-            *(block + 1) = A[std::make_pair(j, i)][2];
-            *(block + 2) = A[std::make_pair(j, i)][1];
-            *(block + 3) = A[std::make_pair(j, i)][3];
+            double* block = transpose_linear_matrix(A[std::make_pair(j, i)], b_size);
             A[std::make_pair(i, j)] = block;
         }
     }
@@ -79,10 +74,10 @@ void foo(std::string afn, std::string bfn)
                 if(k > j)
                     continue;
 
-                double* block = block_multiplication(A[std::make_pair(i , k)], B[std::make_pair(k, j)], 2);
-                for(int i = 0; i < 4; i++)
+                double* block = block_multiplication(A[std::make_pair(i , k)], B[std::make_pair(k, j)], b_size);
+                for(int l = 0; l < 4; l++)
                 {
-                    *(res_block + i) = *(res_block + i) + *(block + i);
+                    *(res_block + l) = *(res_block + l) + *(block + l);
                 }
                 delete [] block;
             }
@@ -102,7 +97,25 @@ void foo(std::string afn, std::string bfn)
 
 int main(int argc, char *argv[])
 {
-    foo("A4.txt", "B4.txt");
+//    foo("tests/A4.txt", "tests/B4.txt");
+    std::map<std::pair<size_t, size_t>, double*> mat_a = read_from_file<double>(4, 2, "tests/A4.txt", 1);
+    std::map<std::pair<size_t, size_t>, double*> mat_b = read_from_file<double>(4, 2, "tests/B4.txt", 0);
+
+    //matrices
+    for (auto it = mat_a.begin(); it != mat_a.end(); it++)
+    {
+       std::pair<std::pair<size_t, size_t>, double*> m = *it;
+       print_lin_mtx<double>(m.second, 4);
+    }
+
+    for (auto it = mat_b.begin(); it != mat_b.end(); it++)
+    {
+       std::pair<std::pair<size_t, size_t>, double*> m = *it;
+       print_lin_mtx<double>(m.second, 4);
+    }
+
+    double *mat_c = seq_block_mat_multiplication<double>(mat_a, mat_b, 4, 2);
+    print_lin_mtx<double>(mat_c, 4);
 
     return 0;
 //    std::srand( (unsigned)time(0) );

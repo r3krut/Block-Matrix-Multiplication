@@ -123,23 +123,3 @@ double* split_on_blocks(double **mat, const size_t n, const size_t block_sz, con
 
     return lin_repr;
 }
-
-void fill_from_file(double **a, double **b, const size_t n, const std::string &fn)
-{
-    std::ifstream inf(fn);
-
-    double aa, bb;
-    size_t i = 0, j = 0;
-    while (inf >> aa >> bb)
-    {
-        a[i][j] = aa;
-        b[i][j] = bb;
-        j++;
-        if (j == 4)
-        {
-            j = 0;
-            i += 1;
-        }
-    }
-    inf.close();
-}
