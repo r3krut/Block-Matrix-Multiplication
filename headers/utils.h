@@ -53,7 +53,8 @@ MTX_T* split_on_blocks(MTX_T **mat, const size_t n, const size_t block_sz, const
 {
     assert(mat != NULL && n >= 2 && block_sz <= n && n % block_sz == 0);
 
-    MTX_T *lin_repr = new MTX_T[n * n];
+    size_t count_elems = n * (n + block_sz) / 2;
+    MTX_T *lin_repr = new MTX_T[count_elems];
     size_t lin_ind = 0;
     size_t count = 0;
     if (_type == 1) //by rows
@@ -88,8 +89,10 @@ MTX_T* split_on_blocks(MTX_T **mat, const size_t n, const size_t block_sz, const
             }
         std::cout << "Count of blocks: " << count << "\n";
     }
-    else if (_type == 2)
+    else if (_type == 2) //when we want convert commont matrix to a linear representation
     {
+        MTX_T *lin_repr_comm_mtx = new MTX_T[n * n]; //allocate new memmory
+        delete [] lin_repr; // delete previously allocated memmory
         for (size_t j = 0; j < n; j += block_sz)
             for (size_t i = 0; i < n; i += block_sz)
             {
@@ -98,13 +101,13 @@ MTX_T* split_on_blocks(MTX_T **mat, const size_t n, const size_t block_sz, const
                 for (size_t ii = i; ii < inn; ii++)
                 {
                     for (size_t jj = j; jj < jnn; jj++)
-                        lin_repr[lin_ind++] = mat[ii][jj];
+                        lin_repr_comm_mtx[lin_ind++] = mat[ii][jj];
                 }
                 count++;
             }
         std::cout << "Count of blocks: " << count << "\n";
+        return lin_repr_comm_mtx;
     }
-
     return lin_repr;
 }
 
@@ -174,7 +177,10 @@ std::map<std::pair<size_t, size_t>, ELEM_T*> read_from_file(const size_t m_size,
         for (size_t j = 1; j <= i; j++)
         {
             //saving of a pointer to the beginning of block
-            mat[std::make_pair(i, j)] = mat_elems + m_count;
+            if (_type)
+                mat[std::make_pair(i, j)] = mat_elems + m_count; //for symmetric matrix
+            else
+                mat[std::make_pair(j, i)] = mat_elems + m_count; //for top-triangular
 
             //reading by blocks. Size of block is b_size, then number of elems in linear
             //representation equals b_size * b_size
@@ -344,17 +350,26 @@ ELEM_T* seq_block_mat_multiplication(std::map<std::pair<size_t, size_t>, ELEM_T*
             {
                 //prevent zero multiplication
                 if (k > j)
-                    continue;
+                   continue;
+                std::cout << "("<< i << "|" << k << ") (";
+                for(size_t p = 0; p < b_size*b_size; p++)
+                    std::cout << mat_a[std::make_pair(i, k)][p] << " ";
+                std::cout << ")  *  (" << k << "|" << j << ") (";
+                for(size_t p = 0; p < b_size*b_size; p++)
+                    std::cout << mat_b[std::make_pair(k, j)][p] << " ";
+                std::cout << ") == (";
+
                 ELEM_T *block = block_multiplication<ELEM_T>(mat_a[std::make_pair(i , k)], mat_b[std::make_pair(k, j)], b_size);
+                for(size_t p = 0; p < b_size*b_size; p++)
+                    std::cout << block[p] << " ";
+                std::cout << ")\n";
+
                 for (size_t l = 0; l < b_size * b_size; l++)
-                {
                     *(res_block + l) = *(res_block + l) + *(block + l);
-                }
                 delete [] block;
             }
         }
     }
-
     return mat_c;
 }
 
@@ -376,14 +391,13 @@ template<typename LMTX_T>
  * @param m_size - matrix size - it is source size
  * @param b_size - size of block
  */
-void print_lin_mtx(const LMTX_T *lin_mtx, const size_t m_size, const size_t b_size)
+void print_lin_mtx(const LMTX_T *lin_mtx, const size_t m_size)
 {
-    assert (lin_mtx != NULL && m_size % b_size == 0 && m_size > 0 && b_size > 0);
+    assert (lin_mtx != NULL &&  m_size >= 4);
 
-    size_t count_elems = m_size*(m_size + b_size) / 2;
-    for (size_t i = 0; i < count_elems; i++)
+    for (size_t i = 0; i < m_size; i++)
         std::cout << lin_mtx[i] << " ";
-    std::cout << "\nSize of linear matrix: " << count_elems << "\n";
+    std::cout << "\nSize of linear matrix: " << m_size << "\n";
 }
 
 template<typename MTX_T>
