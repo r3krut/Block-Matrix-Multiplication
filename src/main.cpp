@@ -98,24 +98,36 @@ void foo(std::string afn, std::string bfn)
 int main(int argc, char *argv[])
 {
 //    foo("tests/A4.txt", "tests/B4.txt");
-    std::map<std::pair<size_t, size_t>, double*> mat_a = read_from_file<double>(4, 2, "tests/A4.txt", 1);
-    std::map<std::pair<size_t, size_t>, double*> mat_b = read_from_file<double>(4, 2, "tests/B4.txt", 0);
+//    std::map<std::pair<size_t, size_t>, double*> mat_a = read_from_file<double>(4, 2, "tests/A4.txt", 1);
+//    std::map<std::pair<size_t, size_t>, double*> mat_b = read_from_file<double>(4, 2, "tests/B4.txt", 0);
 
-    //matrices
-    for (auto it = mat_a.begin(); it != mat_a.end(); it++)
-    {
-       std::pair<std::pair<size_t, size_t>, double*> m = *it;
-       print_lin_mtx<double>(m.second, 4);
-    }
+//    //matrices
+//    for (auto it = mat_a.begin(); it != mat_a.end(); it++)
+//    {
+//       std::pair<std::pair<size_t, size_t>, double*> m = *it;
+//       print_lin_mtx<double>(m.second, 4);
+//    }
 
-    for (auto it = mat_b.begin(); it != mat_b.end(); it++)
-    {
-       std::pair<std::pair<size_t, size_t>, double*> m = *it;
-       print_lin_mtx<double>(m.second, 4);
-    }
+//    for (auto it = mat_b.begin(); it != mat_b.end(); it++)
+//    {
+//       std::pair<std::pair<size_t, size_t>, double*> m = *it;
+//       print_lin_mtx<double>(m.second, 4);
+//    }
 
-    double *mat_c = seq_block_mat_multiplication<double>(mat_a, mat_b, 4, 2);
-    print_lin_mtx<double>(mat_c, 4);
+//    double *mat_c = seq_block_mat_multiplication<double>(mat_a, mat_b, 4, 2);
+//    print_lin_mtx<double>(mat_c, 4);
+
+    double **mat_a = create_matrix(12, 0);
+    double **mat_b = create_matrix(12, 1);
+
+    print_matrix(mat_a, 12);
+    print_matrix(mat_b, 12);
+
+    double *lin_a = split_on_blocks(mat_a, 12, 2, 1);
+    double *lin_b = split_on_blocks(mat_b, 12, 2, 0);
+
+    print_lin_mtx<double>(lin_a, 12, 2);
+    print_lin_mtx<double>(lin_b, 12, 2);
 
     return 0;
 //    std::srand( (unsigned)time(0) );

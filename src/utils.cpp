@@ -5,19 +5,19 @@ double dRand()
     return ((double)(rand() % 10 ));
 }
 
-double** create_matrix(const size_t n, const bool _type)
+double** create_matrix(const size_t m_size, const bool _type)
 {
-    assert(n >= 2);
+    assert(m_size >= 2);
 
-    double **mat = new double*[n];
-    for (size_t i = 0; i < n; i++)
-        mat[i] = new double[n];
+    double **mat = new double*[m_size];
+    for (size_t i = 0; i < m_size; i++)
+        mat[i] = new double[m_size];
 
     if (_type)
     {
         //top-triangular
-        for (size_t i = 0; i < n; i++)
-            for (size_t j = 0; j < n; j++)
+        for (size_t i = 0; i < m_size; i++)
+            for (size_t j = 0; j < m_size; j++)
             {
                 if (i > j)
                     mat[i][j] = 0.0;
@@ -28,8 +28,8 @@ double** create_matrix(const size_t n, const bool _type)
     else
     {
         //symmetric
-        for (size_t i = 0; i < n; i++)
-            for (size_t j = i; j < n; j++)
+        for (size_t i = 0; i < m_size; i++)
+            for (size_t j = i; j < m_size; j++)
             {
                 mat[i][j] = dRand();
                 mat[j][i] = mat[i][j];
@@ -38,88 +38,16 @@ double** create_matrix(const size_t n, const bool _type)
     return mat;
 }
 
-void release_matrix(double **mat, const size_t n)
+void write_to_file(const double *lin_mat, const size_t m_size, const size_t b_size, const std::string &file_name)
 {
-    for (size_t i = 0; i < n; i++)
-        delete [] mat[i];
-    delete [] mat;
+    assert(lin_mat != NULL && m_size >= 2 && b_size >= 1 && m_size % b_size == 0 && file_name.size() != 0);
 
-    std::cout << "Matrix was released.\n";
-}
+    size_t count_elems = m_size * (m_size + b_size) / 2;
 
-void print_matrix(double **mat, const size_t n)
-{
-    assert(n >= 2);
-
-    for (size_t i = 0; i < n; i++)
-    {
-        for (size_t j = 0; j < n; j++)
-            std::cout << mat[i][j] << " ";
-        std::cout << "\n";
-    }
-    std::cout << "Size of matrix: " << n << "x" << n << "\n";
-}
-
-void write_to_file(const double *lin_mat, const size_t n, const std::string &file_name)
-{
     std::ofstream of(file_name);
     if (!of.is_open())
         throw std::runtime_error("File '" + file_name + "' dot't was created.\n");
-    for (size_t i = 0; i < n; i++)
+    for (size_t i = 0; i < count_elems; i++)
         of << lin_mat[i] << " ";
     of.close();
-}
-
-double *mtx_to_linear(double **mat, const size_t n)
-{
-    assert(n >= 2 && mat != NULL);
-
-    double *lin_mtx = new double[n * n];
-    for (size_t i = 0; i < n; i++)
-        for (size_t j = 0; j < n; j++)
-            lin_mtx[i*n+j] = mat[i][j];
-    return lin_mtx;
-}
-
-double* split_on_blocks(double **mat, const size_t n, const size_t block_sz, const bool _type)
-{
-    assert(mat != NULL && n >= 2 && block_sz <= n && n % block_sz == 0);
-
-    double *lin_repr = new double[n * n];
-    size_t lin_ind = 0;
-    size_t count = 0;
-    if (_type) //by rows
-    {
-        for (size_t i = 0; i < n; i += block_sz)
-            for (size_t j = 0; j < n; j += block_sz)
-            {
-                size_t inn = (i + block_sz) >= n ? n : (i + block_sz);
-                size_t jnn = (j + block_sz) >= n ? n : (j + block_sz);
-                for (size_t ii = i; ii < inn; ii++)
-                {
-                    for (size_t jj = j; jj < jnn; jj++)
-                        lin_repr[lin_ind++] = mat[ii][jj];
-                }
-                count++;
-            }
-        std::cout << "Count of blocks: " << count << "\n";
-    }
-    else //by columns
-    {
-        for (size_t j = 0; j < n; j += block_sz)
-            for (size_t i = 0; i < n; i += block_sz)
-            {
-                size_t inn = (i + block_sz) >= n ? n : (i + block_sz);
-                size_t jnn = (j + block_sz) >= n ? n : (j + block_sz);
-                for (size_t ii = i; ii < inn; ii++)
-                {
-                    for (size_t jj = j; jj < jnn; jj++)
-                        lin_repr[lin_ind++] = mat[ii][jj];
-                }
-                count++;
-            }
-        std::cout << "Count of blocks: " << count << "\n";
-    }
-
-    return lin_repr;
 }
