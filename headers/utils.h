@@ -20,16 +20,17 @@ double dRand();
  * @param _type - this is type of matrix: 0 - symmetric, 1 - top-triangular
  * @return double pointer
  */
-double** create_matrix(const size_t n, const bool _type);
+double** create_matrix(const size_t m_size, const bool _type);
 
-/**
- * @brief mtx_to_linear - transform source matrix to linearal representation
- * @param mat
- * @param n
- * @return pointer on a doubles
- */
-double* mtx_to_linear(double **mat, const size_t n);
-void release_matrix(double **mat, const size_t n);
+template<typename MTX_T>
+void release_matrix(MTX_T **mat, const size_t m_size)
+{
+    for (size_t i = 0; i < m_size; i++)
+        delete [] mat[i];
+    delete [] mat;
+
+    std::cout << "Matrix was released.\n";
+}
 
 template<typename LMTX_T>
 void release_linear_mtx(LMTX_T *lin_mtx)
@@ -37,22 +38,82 @@ void release_linear_mtx(LMTX_T *lin_mtx)
     delete [] lin_mtx;
 }
 
+template<typename MTX_T>
 /**
  * @brief split_on_blocks - performs splitting on blocks and returns the matrix in the linearal representation
  * @param mat
  * @param n
  * @param block_sz - size of block
- * @param _type - type of accomodation. If 1 - accomodation by rows, by columns
+ * @param _type - type of accomodation. If 1 - accomodation of matrix by rows(Matrix must be symmetrical)
+ *                                      If 0 - accomodation of matrix by columns(Matrix must be top-triangular)
+ *                                      If 2 - accomodation of matrix by columns. It is common matrix. Needed to checking
  * @return
  */
-double* split_on_blocks(double **mat, const size_t n, const size_t block_sz, const bool _type);
+MTX_T* split_on_blocks(MTX_T **mat, const size_t n, const size_t block_sz, const size_t _type)
+{
+    assert(mat != NULL && n >= 2 && block_sz <= n && n % block_sz == 0);
+
+    MTX_T *lin_repr = new MTX_T[n * n];
+    size_t lin_ind = 0;
+    size_t count = 0;
+    if (_type == 1) //by rows
+    {
+        for (size_t i = 0; i < n; i += block_sz)
+            for (size_t j = 0; j <= i; j += block_sz)
+            {
+                size_t inn = (i + block_sz) >= n ? n : (i + block_sz);
+                size_t jnn = (j + block_sz) >= n ? n : (j + block_sz);
+                for (size_t ii = i; ii < inn; ii++)
+                {
+                    for (size_t jj = j; jj < jnn; jj++)
+                        lin_repr[lin_ind++] = mat[ii][jj];
+                }
+                count++;
+            }
+        std::cout << "Count of blocks: " << count << "\n";
+    }
+    else if (_type == 0) //by columns
+    {
+        for (size_t j = 0; j < n; j += block_sz)
+            for (size_t i = 0; i <= j; i += block_sz)
+            {
+                size_t inn = (i + block_sz) >= n ? n : (i + block_sz);
+                size_t jnn = (j + block_sz) >= n ? n : (j + block_sz);
+                for (size_t ii = i; ii < inn; ii++)
+                {
+                    for (size_t jj = j; jj < jnn; jj++)
+                        lin_repr[lin_ind++] = mat[ii][jj];
+                }
+                count++;
+            }
+        std::cout << "Count of blocks: " << count << "\n";
+    }
+    else if (_type == 2)
+    {
+        for (size_t j = 0; j < n; j += block_sz)
+            for (size_t i = 0; i < n; i += block_sz)
+            {
+                size_t inn = (i + block_sz) >= n ? n : (i + block_sz);
+                size_t jnn = (j + block_sz) >= n ? n : (j + block_sz);
+                for (size_t ii = i; ii < inn; ii++)
+                {
+                    for (size_t jj = j; jj < jnn; jj++)
+                        lin_repr[lin_ind++] = mat[ii][jj];
+                }
+                count++;
+            }
+        std::cout << "Count of blocks: " << count << "\n";
+    }
+
+    return lin_repr;
+}
 
 template<typename MTX_T>
 /**
  * @brief transpose_linear_matrix - calculates a tranpose matrix by a linear matrix
- * @param lin_block - matrix whown as a linear representation
- * @param block_sz
- * @return tranpose linear matrix
+ * @param lin_block - matrix shown as a linear representation
+ * @param block_sz - size of block. It is size of the quadric matrix
+ * @return - tranpose linear matrix
  */
 MTX_T* transpose_linear_matrix(MTX_T *lin_block, const size_t block_sz)
 {
@@ -71,17 +132,24 @@ MTX_T* transpose_linear_matrix(MTX_T *lin_block, const size_t block_sz)
     return t_lin_bock;
 }
 
-void write_to_file(const double *lin_mat, const size_t n, const std::string &file_name);
+/**
+ * @brief write_to_file - write linear matrix to file
+ * @param lin_mat - linear matrix
+ * @param m_size
+ * @param b_size
+ * @param file_name
+ */
+void write_to_file(const double *lin_mat, const size_t m_size, const size_t b_size, const std::string &file_name);
 
 template<typename ELEM_T>
 /**
- * @brief read_from_file - read matrix from file
+ * @brief read_from_file - read linear matrix from file
  * @param m_size - size of matrix
  * @param b_size - size of block
  * @param file_name
  * @param _type - 1 if matrix is symmetric, 0 - if matrix is a top-triangular
- * @return - map where: Key is a pair of indexes of a block of matrix.
- *                      Value it is a pointer to the beginning of the corresponding block in the linear representation
+ * @return - map. Where: Key is a pair of indexes of a block of matrix.
+ *                       Value it is a pointer to the beginning of the corresponding block in the linear representation
  */
 std::map<std::pair<size_t, size_t>, ELEM_T*> read_from_file(const size_t m_size, const size_t b_size, const std::string &file_name, bool _type)
 {
@@ -135,14 +203,20 @@ std::map<std::pair<size_t, size_t>, ELEM_T*> read_from_file(const size_t m_size,
 }
 
 template<typename MTX_T>
-bool compare_two_matrices(MTX_T **mat_a, MTX_T **mat_b, const size_t n)
+/**
+ * @brief compare_two_matrices - compares two linear matrices.
+ * @param lmat_a
+ * @param lmat_b
+ * @param m_size - size of matices. lmat_a and lmat_b must have a same size
+ * @return
+ */
+bool compare_two_matrices(MTX_T *lmat_a, MTX_T *lmat_b, const size_t m_size)
 {
-    assert(mat_a != NULL && mat_b != NULL && n >= 2);
+    assert(lmat_a != NULL && lmat_b != NULL && m_size >= 2);
 
-    for (size_t i = 0; i < n; i++)
-        for (size_t j = 0; j < n; j++)
-            if (mat_a[i][j] != mat_b[i][j])
-                return false;
+    for (size_t i = 0; i < m_size; i++)
+        if (lmat_a[i] != lmat_b[i])
+            return false;
     return true;
 }
 
@@ -296,14 +370,34 @@ MTX_T* sum_two_blocks(MTX_T *block1, MTX_T *block2, const size_t block_sz)
 }
 
 template<typename LMTX_T>
-void print_lin_mtx(const LMTX_T *lin_mtx, const size_t n)
+/**
+ * @brief print_lin_mtx - prints the matrix which shown as linear representation
+ * @param lin_mtx
+ * @param m_size - matrix size - it is source size
+ * @param b_size - size of block
+ */
+void print_lin_mtx(const LMTX_T *lin_mtx, const size_t m_size, const size_t b_size)
 {
-    assert (lin_mtx != NULL && n >= 2);
+    assert (lin_mtx != NULL && m_size % b_size == 0 && m_size > 0 && b_size > 0);
 
-    for (size_t i = 0; i < n; i++)
+    size_t count_elems = m_size*(m_size + b_size) / 2;
+    for (size_t i = 0; i < count_elems; i++)
         std::cout << lin_mtx[i] << " ";
-    std::cout << "\nSize of linear matrix: " << n << "\n";
+    std::cout << "\nSize of linear matrix: " << count_elems << "\n";
 }
-void print_matrix(double **mat, const size_t n);
+
+template<typename MTX_T>
+void print_matrix(MTX_T **mat, const size_t m_size)
+{
+    assert(mat != NULL && m_size >= 2);
+
+    for (size_t i = 0; i < m_size; i++)
+    {
+        for (size_t j = 0; j < m_size; j++)
+            std::cout << mat[i][j] << " ";
+        std::cout << "\n";
+    }
+    std::cout << "Size of matrix: " << m_size << "x" << m_size << "\n";
+}
 
 #endif // UTILS_H
