@@ -338,8 +338,10 @@ ELEM_T* seq_block_mat_multiplication(std::map<std::pair<size_t, size_t>, ELEM_T*
     assert(mat_a.size() != 0 && mat_b.size() != 0 && m_size >= 2 && b_size >= 1 && m_size % b_size == 0);
 
     ELEM_T *mat_c = new ELEM_T[m_size * m_size];
-    size_t c_count = 0;
+    for (size_t i = 0; i < m_size * m_size; i++)
+        mat_c[i] = 0.0;
 
+    size_t c_count = 0;
     for (size_t j = 1; j <= m_size / b_size; j++)
     {
         for (size_t i = 1; i <= m_size / b_size; i++)
