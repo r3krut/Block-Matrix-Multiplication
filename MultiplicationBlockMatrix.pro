@@ -11,7 +11,9 @@ QMAKE_CXXFLAGS+= -fopenmp
 QMAKE_LFLAGS +=  -fopenmp
 
 # Input
-SOURCES += src/utils.cpp \
-    src/main.cpp
+SOURCES += \
+    src/main.cpp \
+    src/utils.cpp
 
-HEADERS += headers/utils.h
+HEADERS += \
+    headers/utils.h
