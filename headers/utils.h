@@ -40,6 +40,42 @@ void release_linear_mtx(LMTX_T *lin_mtx)
 
 template<typename MTX_T>
 /**
+ * @brief release_map_matrix - release a linear matrix throught pointers which contains in the map
+ * @param m
+ * @param m_size
+ * @param b_size
+ * @param _type - type of matix. 1 - symmetric, 0 - top-triangular
+ */
+void release_map_matrix(std::map<std::pair<size_t, size_t>, MTX_T*> &m,
+                        const size_t m_size,
+                        const size_t b_size,
+                        bool _type)
+{
+    assert(m.size() > 0 && m_size >= 2 && b_size >= 1 && m_size % b_size == 0);
+
+    if (!_type)
+    {
+        auto it = m.begin();
+        delete [] (*it).second;
+    }
+    else
+    {
+        for (size_t i = 1; i < m_size / b_size; i++)
+        {
+            //delete all transpose blocks
+            for(size_t j = i + 1; j <= m_size / b_size; j++)
+            {
+                delete [] m[std::make_pair(i, j)];
+            }
+        }
+        //delete blocks which placed below a main diagonal
+        auto it = m.begin();
+        delete [] (*it).second;
+    }
+}
+
+template<typename MTX_T>
+/**
  * @brief split_on_blocks - performs splitting on blocks and returns the matrix in the linearal representation
  * @param mat
  * @param n
@@ -138,11 +174,10 @@ MTX_T* transpose_linear_matrix(MTX_T *lin_block, const size_t block_sz)
 /**
  * @brief write_to_file - write linear matrix to file
  * @param lin_mat - linear matrix
- * @param m_size
- * @param b_size
+ * @param elems_count - real number of elements in the linear representation
  * @param file_name
  */
-void write_to_file(const double *lin_mat, const size_t m_size, const size_t b_size, const std::string &file_name);
+void write_to_file(const double *lin_mat, const size_t elems_count, const std::string &file_name);
 
 template<typename ELEM_T>
 /**
@@ -206,6 +241,26 @@ std::map<std::pair<size_t, size_t>, ELEM_T*> read_from_file(const size_t m_size,
     }
     inf.close();
     return mat;
+}
+
+template<typename LMTX_T>
+LMTX_T* read_etalon_from_file(const size_t m_size, const std::string &file_name)
+{
+    assert(m_size >= 2 && file_name.size() > 0);
+
+    LMTX_T *l_mat = new LMTX_T[m_size * m_size];
+    LMTX_T elem;
+
+    std::ifstream inf(file_name);
+    if (!inf.is_open())
+        throw std::runtime_error("File '" + file_name + "' don't was openned.");
+    for (size_t i = 0; i < m_size * m_size; i++)
+    {
+        inf >> elem;
+        l_mat[i] = elem;
+    }
+    inf.close();
+    return l_mat;
 }
 
 template<typename MTX_T>
@@ -296,15 +351,18 @@ template<typename BLK_T>
  * @param block1. Example: 3124-first block, 4353-second block, etc. This is the block-row represenation, i.e. 31244353...
  * @param block2. Example: 5346-first block, 6634-second block, etc. This is the block-column representation, i.e. 53466634..
  * @param block_sz
+ * @param enable_omp - bool variable. If 1 then the function performs in the parallel mode. 0 - sequential mode
  * @return new block - result of multiplication. It's also a block representation
  */
-BLK_T* block_multiplication(BLK_T *block1, BLK_T *block2, const size_t block_sz)
+BLK_T* block_multiplication(BLK_T *block1, BLK_T *block2, const size_t block_sz, bool enable_omp)
 {
     assert(block_sz >= 1);
 
     size_t len_of_block = block_sz * block_sz;
     BLK_T *res_block = new BLK_T[len_of_block];
     size_t ind_res_blk = 0;
+
+#pragma omp parallel for if(enable_omp)
     for (size_t i = 0; i < len_of_block; i += block_sz) //traverse through all the rows in the first block. Step is 'block_sz'
     {
         for (size_t j = 0; j < block_sz; j++)
@@ -319,6 +377,7 @@ BLK_T* block_multiplication(BLK_T *block1, BLK_T *block2, const size_t block_sz)
             res_block[ind_res_blk++] = sum;
         }
     }
+
     return res_block;
 }
 
@@ -353,19 +412,8 @@ ELEM_T* seq_block_mat_multiplication(std::map<std::pair<size_t, size_t>, ELEM_T*
                 //prevent zero multiplication
                 if (k > j)
                    continue;
-                std::cout << "("<< i << "|" << k << ") (";
-                for(size_t p = 0; p < b_size*b_size; p++)
-                    std::cout << mat_a[std::make_pair(i, k)][p] << " ";
-                std::cout << ")  *  (" << k << "|" << j << ") (";
-                for(size_t p = 0; p < b_size*b_size; p++)
-                    std::cout << mat_b[std::make_pair(k, j)][p] << " ";
-                std::cout << ") == (";
 
-                ELEM_T *block = block_multiplication<ELEM_T>(mat_a[std::make_pair(i , k)], mat_b[std::make_pair(k, j)], b_size);
-                for(size_t p = 0; p < b_size*b_size; p++)
-                    std::cout << block[p] << " ";
-                std::cout << ")\n";
-
+                ELEM_T *block = block_multiplication<ELEM_T>(mat_a[std::make_pair(i , k)], mat_b[std::make_pair(k, j)], b_size, 0);
                 for (size_t l = 0; l < b_size * b_size; l++)
                     *(res_block + l) = *(res_block + l) + *(block + l);
                 delete [] block;

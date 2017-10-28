@@ -2,7 +2,7 @@
 
 double dRand()
 {
-    return ((double)(rand() % 10 ));
+    return ((double)(rand() % 200 - 101 ) / 10.0);
 }
 
 double** create_matrix(const size_t m_size, const bool _type)
@@ -38,16 +38,14 @@ double** create_matrix(const size_t m_size, const bool _type)
     return mat;
 }
 
-void write_to_file(const double *lin_mat, const size_t m_size, const size_t b_size, const std::string &file_name)
+void write_to_file(const double *lin_mat, const size_t elems_count, const std::string &file_name)
 {
-    assert(lin_mat != NULL && m_size >= 2 && b_size >= 1 && m_size % b_size == 0 && file_name.size() != 0);
-
-    size_t count_elems = m_size * (m_size + b_size) / 2;
+    assert(lin_mat != NULL && elems_count > 0);
 
     std::ofstream of(file_name);
     if (!of.is_open())
         throw std::runtime_error("File '" + file_name + "' dot't was created.\n");
-    for (size_t i = 0; i < count_elems; i++)
+    for (size_t i = 0; i < elems_count; i++)
         of << lin_mat[i] << " ";
     of.close();
 }
