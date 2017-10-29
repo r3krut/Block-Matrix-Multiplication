@@ -58,7 +58,7 @@ void create_csv_file(std::list<std::pair<size_t, double> > &list, const std::str
     if (!of.is_open())
         throw std::runtime_error("File '" + file_name + "' don't was created.\n");
 
-    of << "Block size" << "," << "Time(ms)\n";
+    of << "Block size" << "," << "Time(s.)\n";
     for (auto it = list.begin(); it != list.end(); it++)
         of << std::to_string((*it).first) << "," << std::to_string((*it).second) << "\n";
     of.close();

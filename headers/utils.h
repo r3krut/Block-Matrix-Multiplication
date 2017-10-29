@@ -33,7 +33,7 @@ double dRand();
 double** create_matrix(const size_t m_size, const bool _type);
 
 template<typename MTX_T>
-void release_matrix(MTX_T **mat, const size_t m_size)
+void release_matrix(MTX_T **&mat, const size_t m_size)
 {
     for (size_t i = 0; i < m_size; i++)
         delete [] mat[i];
@@ -43,7 +43,7 @@ void release_matrix(MTX_T **mat, const size_t m_size)
 }
 
 template<typename LMTX_T>
-void release_linear_mtx(LMTX_T *lin_mtx)
+void release_linear_mtx(LMTX_T *&lin_mtx)
 {
     delete [] lin_mtx;
 }
@@ -164,7 +164,7 @@ template<typename MTX_T>
  * @param block_sz - size of block. It is size of the quadric matrix
  * @return - tranpose linear matrix
  */
-MTX_T* transpose_linear_matrix(MTX_T *lin_block, const size_t block_sz)
+inline MTX_T* transpose_linear_matrix(MTX_T *lin_block, const size_t block_sz)
 {
     assert(lin_block != NULL && block_sz >= 1);
 
@@ -253,7 +253,7 @@ template<typename MTX_T>
  * @param m_size - size of matices. lmat_a and lmat_b must have a same size
  * @return
  */
-bool compare_two_matrices(MTX_T *lmat_a, MTX_T *lmat_b, const size_t m_size)
+inline bool compare_two_matrices(MTX_T *lmat_a, MTX_T *lmat_b, const size_t m_size)
 {
     assert(lmat_a != NULL && lmat_b != NULL && m_size >= 2);
 
@@ -339,17 +339,14 @@ template<typename BLK_T>
  * @param block_sz
  * @param enable_omp - bool variable. If 1 then the function performs in the parallel mode. 0 - sequential mode
  * @param num_thrds - number of threads
- * @param time - time of calculation
  * @return new block - result of multiplication. It's also a block representation
  */
-BLK_T* block_multiplication(BLK_T *block1, BLK_T *block2, const size_t block_sz, bool enable_omp, const size_t num_thrds, double &time)
+inline BLK_T* block_multiplication(BLK_T *block1, BLK_T *block2, const size_t block_sz, bool enable_omp, const size_t num_thrds)
 {
     assert(block_sz >= 1);
 
     size_t len_of_block = block_sz * block_sz;
     BLK_T *res_block = new BLK_T[len_of_block];
-
-    std::chrono::steady_clock::time_point st = std::chrono::steady_clock::now();
 #pragma omp parallel if(enable_omp) num_threads(num_thrds)
     for (size_t i = 0; i < len_of_block; i += block_sz) //traverse through all the rows in the first block. Step is 'block_sz'
     {
@@ -365,8 +362,6 @@ BLK_T* block_multiplication(BLK_T *block1, BLK_T *block2, const size_t block_sz,
             res_block[i + j] = sum;
         }
     }
-    std::chrono::steady_clock::time_point fn = std::chrono::steady_clock::now();
-    time = std::chrono::duration_cast<std::chrono::duration<double>>(fn - st).count();
 
     return res_block;
 }
@@ -392,7 +387,8 @@ ELEM_T* seq_block_mat_multiplication(std::map<std::pair<size_t, size_t>, ELEM_T*
         mat_c[i] = 0.0;
 
     size_t c_count = 0;
-    double sum_time = 0.0;
+
+    std::chrono::steady_clock::time_point st = std::chrono::steady_clock::now();
     for (size_t j = 1; j <= m_size / b_size; j++)
     {
         for (size_t i = 1; i <= m_size / b_size; i++)
@@ -405,15 +401,16 @@ ELEM_T* seq_block_mat_multiplication(std::map<std::pair<size_t, size_t>, ELEM_T*
                 if (k > j)
                    continue;
 
-                ELEM_T *block = block_multiplication<ELEM_T>(mat_a[std::make_pair(i , k)], mat_b[std::make_pair(k, j)], b_size, 0, 1, time);
-                sum_time += time;
+                ELEM_T *block = block_multiplication<ELEM_T>(mat_a[std::make_pair(i , k)], mat_b[std::make_pair(k, j)], b_size, 0, 1);
                 for (size_t l = 0; l < b_size * b_size; l++)
                     *(res_block + l) = *(res_block + l) + *(block + l);
                 delete [] block;
             }
         }
     }
-    time = sum_time;
+    std::chrono::steady_clock::time_point fn = std::chrono::steady_clock::now();
+    time = std::chrono::duration_cast<std::chrono::duration<double>>(fn - st).count();
+
     return mat_c;
 }
 
@@ -440,7 +437,8 @@ ELEM_T* internal_parallel_block_mat_multiplication(std::map<std::pair<size_t, si
         mat_c[i] = 0.0;
 
     size_t c_count = 0;
-    double sum_time = 0.0;
+
+    std::chrono::steady_clock::time_point st = std::chrono::steady_clock::now();
     for (size_t j = 1; j <= m_size / b_size; j++)
     {
         for (size_t i = 1; i <= m_size / b_size; i++)
@@ -453,15 +451,16 @@ ELEM_T* internal_parallel_block_mat_multiplication(std::map<std::pair<size_t, si
                 if (k > j)
                    continue;
 
-                ELEM_T *block = block_multiplication<ELEM_T>(mat_a[std::make_pair(i , k)], mat_b[std::make_pair(k, j)], b_size, 1, num_thrds, time);
-                sum_time += time;
+                ELEM_T *block = block_multiplication<ELEM_T>(mat_a[std::make_pair(i , k)], mat_b[std::make_pair(k, j)], b_size, 1, num_thrds);
                 for (size_t l = 0; l < b_size * b_size; l++)
                     *(res_block + l) = *(res_block + l) + *(block + l);
                 delete [] block;
             }
         }
     }
-    time = sum_time;
+    std::chrono::steady_clock::time_point fn = std::chrono::steady_clock::now();
+    time = std::chrono::duration_cast<std::chrono::duration<double>>(fn - st).count();
+
     return mat_c;
 }
 
@@ -490,23 +489,22 @@ ELEM_T* external_parallel_block_mat_multiplication(std::map<std::pair<size_t, si
         mat_c[i] = 0.0;
 
     size_t c_count = 0;
-    double plug_time = 0.0; //unused variable. For block_multiplication function
 
     std::chrono::steady_clock::time_point st = std::chrono::steady_clock::now();
-#pragma omp parallel for num_threads(num_thrds)
     for (size_t j = 1; j <= m_size / b_size; j++)
     {
         for (size_t i = 1; i <= m_size / b_size; i++)
         {
             ELEM_T *res_block = (mat_c + c_count);
             c_count += b_size * b_size;
+#pragma omp parallel for num_threads(num_thrds) //two different blocks multiply on a different kernels
             for (size_t k = 1; k <= m_size / b_size; k++)
             {
                 //prevent zero multiplication
                 if (k > j)
                    continue;
 
-                ELEM_T *block = block_multiplication<ELEM_T>(mat_a[std::make_pair(i , k)], mat_b[std::make_pair(k, j)], b_size, 0, 1, plug_time);
+                ELEM_T *block = block_multiplication<ELEM_T>(mat_a[std::make_pair(i , k)], mat_b[std::make_pair(k, j)], b_size, 0, 1);
                 for (size_t l = 0; l < b_size * b_size; l++)
                     *(res_block + l) = *(res_block + l) + *(block + l);
                 delete [] block;
@@ -582,7 +580,7 @@ LMTX_T* read_etalon_from_file(const size_t m_size, const std::string &file_name)
     for (size_t i = 0; i < m_size * m_size; i++)
     {
         inf >> elem;
-        l_mat[i] = elem;
+        l_mat[i] = static_cast<LMTX_T>(elem);
     }
     inf.close();
     return l_mat;

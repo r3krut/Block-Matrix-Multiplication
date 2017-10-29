@@ -3,98 +3,199 @@
 
 #include "utils.h"
 
-//size of matrix
-#define M_SIZE 2880
+//possible sizes for block
+const std::vector<size_t> sizes = {1, 6, 10, 15, 20, 24, 30, 36, 40, 60, 72, 80,
+                                   96, 120, 144, 160, 180, 240, 360, 480, 720};
+
+/**
+ * @brief generate_files - generates a linear matrices from the source matrix and writes it to the file for each block
+ *                         Also generates the etalon linear matrix for compare from source matrix for each block
+ */
+void generate_files(const size_t &m_size)
+{
+    double time = 0;
+    double **sym_mat = create_matrix(m_size, 0);
+    double **toptriang_mat = create_matrix(m_size, 1);
+    double **mult_m = parallel_multiplication<double>(sym_mat, toptriang_mat, m_size, 4);
+
+    for (size_t i = 0; i < sizes.size(); i++)
+    {
+        std::string path = "matrices/" + std::to_string(sizes[i]);
+        make_new_dir(path);
+
+        double *lin_sym_mat = split_on_blocks(sym_mat, m_size, sizes[i], 1);
+        double *lin_toptriang_mat = split_on_blocks(toptriang_mat, m_size, sizes[i], 0);
+        double *lin_mult_mat = split_on_blocks(mult_m, m_size, sizes[i], 2);
+
+        write_to_file(lin_sym_mat, m_size*(m_size+sizes[i])/2, path + "/" + "a.txt");
+        write_to_file(lin_toptriang_mat, m_size*(m_size+sizes[i])/2, path + "/" + "b.txt");
+        write_to_file(lin_mult_mat, m_size*m_size, path + "/" + "etalon.txt");
+
+        release_linear_mtx<double>(lin_sym_mat);
+        release_linear_mtx<double>(lin_toptriang_mat);
+        release_linear_mtx<double>(lin_mult_mat);
+    }
+
+    release_matrix<double>(sym_mat, m_size);
+    release_matrix<double>(toptriang_mat, m_size);
+    release_matrix<double>(mult_m, m_size);
+}
+
+/**
+ * @brief perform_float_test - test for float type
+ * @param m_size
+ * @param num_th
+ * @return
+ */
+std::tuple<std::list<std::pair<size_t, double> >,
+           std::list<std::pair<size_t, double> >,
+           std::list<std::pair<size_t, double> > > perform_float_test(const size_t &m_size, const size_t num_th = 4)
+{
+    assert(m_size >= 2);
+
+    std::list<std::pair<size_t, double> > res_seq, res_int, res_ext;
+    for (size_t i = 0; i < sizes.size(); i++)
+    {
+        double time_seq = 0.0, time_internal = 0.0, time_external = 0.0;
+        std::string path_a = "matrices/" + std::to_string(sizes[i]) + "/a.txt";
+        std::string path_b = "matrices/" + std::to_string(sizes[i]) + "/b.txt";
+        std::string path_etalon = "matrices/" + std::to_string(sizes[i]) + "/etalon.txt";
+        std::map<std::pair<size_t, size_t>, float*> mmat_a = read_from_file<float>(m_size, sizes[i], path_a, 1);
+        std::map<std::pair<size_t, size_t>, float*> mmat_b = read_from_file<float>(m_size, sizes[i], path_b, 0);
+        float *etalon_lin_mat = read_etalon_from_file<float>(m_size, path_etalon);
+        float *lin_seq_mult = seq_block_mat_multiplication<float>(mmat_a, mmat_b, m_size, sizes[i], time_seq);
+        release_linear_mtx<float>(lin_seq_mult);
+
+        float *lin_int_mult = internal_parallel_block_mat_multiplication<float>(mmat_a, mmat_b, m_size, sizes[i], num_th, time_internal);
+        release_linear_mtx<float>(lin_int_mult);
+
+        float *lin_ext_mult = external_parallel_block_mat_multiplication<float>(mmat_a, mmat_b, m_size, sizes[i], num_th, time_external);
+        release_linear_mtx<float>(lin_ext_mult);
+
+        bool compare_seq = compare_two_matrices<float>(lin_seq_mult, etalon_lin_mat, m_size);
+        bool compare_int = compare_two_matrices<float>(lin_int_mult, etalon_lin_mat, m_size);
+        bool compare_ext = compare_two_matrices<float>(lin_ext_mult, etalon_lin_mat, m_size);
+
+        if (!compare_seq)
+            throw std::runtime_error("Wrong multiplication in 'seq_blocK_mat_multiplication function'\n");
+        if (!compare_int)
+            throw std::runtime_error("Wrong multiplication in 'internal_parallel_blocK_mat_multiplication function'\n");
+        if (!compare_ext)
+            throw std::runtime_error("Wrong multiplication in 'external_parallel_blocK_mat_multiplication function'\n");
+
+        //push to lists
+        res_seq.push_back(std::make_pair(sizes[i], time_seq));
+        res_int.push_back(std::make_pair(sizes[i], time_internal));
+        res_ext.push_back(std::make_pair(sizes[i], time_external));
+
+        //print information
+        std::cout << "Size block[ " << sizes[i] << " ][ float ]\n";
+        std::cout << "Sequential multiplication time(s.):            " << time_seq << "\n";
+        std::cout << "Internal parallel multiplication time(s.):     " << time_internal << "\n";
+        std::cout << "External parallel multiplication time(s.):     " << time_external << "\n\n";
+
+        release_map_matrix<float>(mmat_a, m_size, sizes[i], 1);
+        release_map_matrix<float>(mmat_b, m_size, sizes[i], 0);
+        release_linear_mtx<float>(etalon_lin_mat);
+    }
+    return std::make_tuple(res_seq, res_int, res_ext);
+}
+
+/**
+ * @brief perform_double_test - test for double type
+ * @param m_size
+ * @param num_th
+ * @return
+ */
+std::tuple<std::list<std::pair<size_t, double> >,
+           std::list<std::pair<size_t, double> >,
+           std::list<std::pair<size_t, double> > > perform_double_test(const size_t &m_size, const size_t num_th = 4)
+{
+    assert(m_size >= 2);
+
+    std::list<std::pair<size_t, double> > res_seq, res_int, res_ext;
+    for (size_t i = 0; i < sizes.size(); i++)
+    {
+        double time_seq = 0.0, time_internal = 0.0, time_external = 0.0;
+        std::string path_a = "matrices/" + std::to_string(sizes[i]) + "/a.txt";
+        std::string path_b = "matrices/" + std::to_string(sizes[i]) + "/b.txt";
+        std::string path_etalon = "matrices/" + std::to_string(sizes[i]) + "/etalon.txt";
+        std::map<std::pair<size_t, size_t>, double*> mmat_a = read_from_file<double>(m_size, sizes[i], path_a, 1);
+        std::map<std::pair<size_t, size_t>, double*> mmat_b = read_from_file<double>(m_size, sizes[i], path_b, 0);
+        double *etalon_lin_mat = read_etalon_from_file<double>(m_size, path_etalon);
+
+        double *lin_seq_mult = seq_block_mat_multiplication<double>(mmat_a, mmat_b, m_size, sizes[i], time_seq);
+        release_linear_mtx<double>(lin_seq_mult);
+
+        double *lin_int_mult = internal_parallel_block_mat_multiplication<double>(mmat_a, mmat_b, m_size, sizes[i], num_th, time_internal);
+        release_linear_mtx<double>(lin_int_mult);
+
+        double *lin_ext_mult = external_parallel_block_mat_multiplication<double>(mmat_a, mmat_b, m_size, sizes[i], num_th, time_external);
+        release_linear_mtx<double>(lin_ext_mult);
+
+        bool compare_seq = compare_two_matrices<double>(lin_seq_mult, etalon_lin_mat, m_size);
+        bool compare_int = compare_two_matrices<double>(lin_int_mult, etalon_lin_mat, m_size);
+        bool compare_ext = compare_two_matrices<double>(lin_ext_mult, etalon_lin_mat, m_size);
+
+        if (!compare_seq)
+            throw std::runtime_error("Wrong multiplication in 'seq_blocK_mat_multiplication function'\n");
+        if (!compare_int)
+            throw std::runtime_error("Wrong multiplication in 'internal_parallel_blocK_mat_multiplication function'\n");
+        if (!compare_ext)
+            throw std::runtime_error("Wrong multiplication in 'external_parallel_blocK_mat_multiplication function'\n");
+
+        //push to lists
+        res_seq.push_back(std::make_pair(sizes[i], time_seq));
+        res_int.push_back(std::make_pair(sizes[i], time_internal));
+        res_ext.push_back(std::make_pair(sizes[i], time_external));
+
+        //print information
+        std::cout << "Size block[ " << sizes[i] << " ][ double ]\n";
+        std::cout << "Sequential multiplication time(s.):            " << time_seq << "\n";
+        std::cout << "Internal parallel multiplication time(s.):     " << time_internal << "\n";
+        std::cout << "External parallel multiplication time(s.):     " << time_external << "\n\n";
+
+        release_map_matrix<double>(mmat_a, m_size, sizes[i], 1);
+        release_map_matrix<double>(mmat_b, m_size, sizes[i], 0);
+        release_linear_mtx<double>(etalon_lin_mat);
+    }
+    return std::make_tuple(res_seq, res_int, res_ext);
+}
 
 int main(int argc, char *argv[])
 {
-    std::srand( (unsigned)time(0) );
+    std::srand( (unsigned) time(0) );
 
-    const size_t m_size = 1000;
-    const size_t b_size = 20;
+    const size_t m_size = 2880;
 
-    double s_time = 0.0, in_time = 0.0, ext_time = 0.0, seq_time = 0.0;
+//    generate_files(m_size);
 
-    std::string pa = "matrices/a.txt";
-    std::string pb = "matrices/b.txt";
-    double **mat_a = create_matrix(m_size, 0);
-    double **mat_b = create_matrix(m_size, 1);
-    double **mat_c = simple_multiplication<double>(mat_a, mat_b, m_size, s_time);
+    try
+    {
+        std::tuple<std::list<std::pair<size_t, double> >,
+                   std::list<std::pair<size_t, double> >,
+                   std::list<std::pair<size_t, double> > > float_test = perform_float_test(m_size, 4);
 
-    double *lin_mat_c = split_on_blocks<double>(mat_c, m_size, b_size, 2); //this is etalon for checking
+        std::tuple<std::list<std::pair<size_t, double> >,
+                   std::list<std::pair<size_t, double> >,
+                   std::list<std::pair<size_t, double> > > double_test = perform_double_test(m_size, 4);
 
-    double *lin_a = split_on_blocks<double>(mat_a, m_size, b_size, 1);
-    double *lin_b = split_on_blocks<double>(mat_b, m_size, b_size, 0);
-    write_to_file(lin_a, m_size*(m_size+b_size)/2, pa);
-    write_to_file(lin_b, m_size*(m_size+b_size)/2, pb);
+        create_csv_file(std::get<0>(float_test), "results/float/seq_float.csv");
+        create_csv_file(std::get<1>(float_test), "results/float/int_float.csv");
+        create_csv_file(std::get<2>(float_test), "results/float/ext_float.csv");
 
-//    print_lin_mtx<double>(lin_a, m_size*(m_size+b_size)/2);
-//    print_lin_mtx<double>(lin_b, m_size*(m_size+b_size)/2);
-
-//    std::cout << "\nMatrix of result(common mult. lin. repr.):\n";
-//    print_lin_mtx<double>(lin_mat_c, m_size*m_size);
-
-    std::map<std::pair<size_t, size_t>, double*> mmat_a = read_from_file<double>(m_size, b_size, pa, 1);
-    std::map<std::pair<size_t, size_t>, double*> mmat_b = read_from_file<double>(m_size, b_size, pb, 0);
-
-//    std::cout << "\n";
-//    for (auto it = mmat_a.begin(); it != mmat_a.end(); it++)
-//    {
-//        std::pair<std::pair<size_t, size_t>, double*> m = *it;
-//        std::cout << m.first.first << "|" << m.first.second << "\n";
-//        print_lin_mtx<double>(m.second, b_size*b_size);
-//    }
-
-//    std::cout << "\n\n";
-
-//    for (auto it = mmat_b.begin(); it != mmat_b.end(); it++)
-//    {
-//        std::pair<std::pair<size_t, size_t>, double*> m = *it;
-//        std::cout << m.first.first << "|" << m.first.second << "\n";
-//        print_lin_mtx<double>(m.second, b_size*b_size);
-//    }
-
-//    print_matrix<double>(mat_a, m_size);
-//    print_matrix<double>(mat_b, m_size);
-//    print_matrix<double>(mat_c, m_size);
-
-    double *seq_lin_c = seq_block_mat_multiplication(mmat_a, mmat_b, m_size, b_size, seq_time);
-//    std::cout << "Block mult. result:\n";
-    double *ext_lin_c = external_parallel_block_mat_multiplication(mmat_a, mmat_b, m_size, b_size, 4, ext_time);
-//    print_lin_mtx(ext_lin_c, m_size*m_size);
-    double *int_lin_c = internal_parallel_block_mat_multiplication(mmat_a, mmat_b, m_size, b_size, 4, in_time);
-//    print_lin_mtx(int_lin_c, m_size*m_size);
-
-    release_map_matrix(mmat_a, m_size, b_size, 1);
-    release_map_matrix(mmat_b, m_size, b_size, 0);
-
-    std::cout << "\n";
-
-    bool seq_check = compare_two_matrices(seq_lin_c, lin_mat_c, m_size);
-    if (seq_check)
-        std::cout << "Correct multiplication(Seq)\n";
-    else
-        std::cout << "Incorrect multiplication(Seq)\n";
-
-    bool ext_check = compare_two_matrices(ext_lin_c, lin_mat_c, m_size);
-    if (ext_check)
-        std::cout << "Correct multiplication(External)\n";
-    else
-        std::cout << "Incorrect multiplication(External)\n";
-
-    bool int_check = compare_two_matrices(int_lin_c, lin_mat_c, m_size);
-    if (int_check)
-        std::cout << "Correct multiplication(Internal)\n";
-    else
-        std::cout << "Incorrect multiplication(Internal)\n";
-
-    std::cout << "\nTime simple mult.:         " << s_time << "\n";
-    std::cout << "Time seq mult.:              " << seq_time << "\n";
-    std::cout << "Time external mult.:         " << ext_time << "\n";
-    std::cout << "Time internal mult.:         " << in_time << "\n";
-    std::cout << "Ratio (simp./seq.):                     " << s_time / seq_time << "\n";
-    std::cout << "Ratio (simp./ext.):                     " << s_time / ext_time << "\n";
-    std::cout << "Ratio (simp./int.):                     " << s_time / in_time << "\n";
+        create_csv_file(std::get<0>(double_test), "results/double/seq_double.csv");
+        create_csv_file(std::get<1>(double_test), "results/double/seq_double.csv");
+        create_csv_file(std::get<2>(double_test), "results/double/seq_double.csv");
+    }
+    catch (const std::runtime_error &re)
+    {
+        std::cerr << re.what() << "\n";
+    }
+    catch (...)
+    {
+        std::cout << "Unknown exception.\n";
+    }
 
     return 0;
 }
