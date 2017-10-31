@@ -17,7 +17,9 @@
 
 <br>
 <h3 align="center">Float type</h3>
+
 ![Float type](https://cdn.rawgit.com/rekrut1993/Block-Matrix-Multiplication/ca5bfe0c/results/gcc/float/gcc_float.svg) 
 
 <h3 align="center">Double type</h3>
+
 ![Double type](https://cdn.rawgit.com/rekrut1993/Block-Matrix-Multiplication/77b23ee5/results/gcc/double/gcc_double.svg) 
