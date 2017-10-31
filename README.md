@@ -10,4 +10,17 @@
 </ul>
 
 <p>Internal and external parallelization based on OpenMP technology</p> 
- 
+<br>
+<br>
+
+<p> This repository contains the results of the tests for GCC compiler for two different types: double and float, respectively</p>
+<p> Later will be given the results of the tests for the Clang compiler or other</p>
+
+<br>
+<br>
+<br>
+<p><b>Tests for float type</b></p>
+
+
+<br>
+<p><b>Tests for double type</b></p>
