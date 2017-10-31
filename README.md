@@ -18,8 +18,8 @@
 <br>
 <br>
 <p><b>Tests for float type</b></p>
-![Image alt](https://github.com/rekrut1993/Block-Matrix-Multiplication/raw/master/results/gcc/float/gcc_float.svg)
+![Float type](https://github.com/rekrut1993/Block-Matrix-Multiplication/raw/master/results/gcc/float/gcc_float.svg)
 
 <br>
 <p><b>Tests for double type</b></p>
-![Image alt](https://github.com/rekrut1993/Block-Matrix-Multiplication/raw/master/results/gcc/double/gcc_double.svg)
+![Double type](https://github.com/rekrut1993/Block-Matrix-Multiplication/raw/master/results/gcc/double/gcc_double.svg)
