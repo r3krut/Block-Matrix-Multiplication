@@ -168,37 +168,69 @@ int main(int argc, char *argv[])
 {
     std::srand( (unsigned) time(0) );
 
-   const size_t m_size = 2880;
+    //generate_files(m_size);
 
-   // generate_files(m_size);
-
-    try
-    {
-        std::cout << "***************Start calculations\n";
-        std::tuple<std::list<std::pair<size_t, double> >,
-                   std::list<std::pair<size_t, double> >,
-                   std::list<std::pair<size_t, double> > > float_test = perform_float_test(m_size, 4);
+//    try
+//    {
+//        std::cout << "***************Start calculations\n";
+//        std::tuple<std::list<std::pair<size_t, double> >,
+//                   std::list<std::pair<size_t, double> >,
+//                   std::list<std::pair<size_t, double> > > float_test = perform_float_test(m_size, 4);
 
 //        std::tuple<std::list<std::pair<size_t, double> >,
 //                   std::list<std::pair<size_t, double> >,
 //                   std::list<std::pair<size_t, double> > > double_test = perform_double_test(m_size, 4);
 
-        create_csv_file(std::get<0>(float_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/clang/float/seq_float.csv");
-        create_csv_file(std::get<1>(float_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/clang/float/int_float.csv");
-        create_csv_file(std::get<2>(float_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/clang/float/ext_float.csv");
+//        create_csv_file(std::get<0>(float_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/clang/float/seq_float.csv");
+//        create_csv_file(std::get<1>(float_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/clang/float/int_float.csv");
+//        create_csv_file(std::get<2>(float_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/clang/float/ext_float.csv");
 
 //        create_csv_file(std::get<0>(double_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/clang/double/seq_double.csv");
 //        create_csv_file(std::get<1>(double_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/clang/double/int_double.csv");
 //        create_csv_file(std::get<2>(double_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/clang/double/ext_double.csv");
-    }
-    catch (const std::runtime_error &re)
-    {
-        std::cerr << re.what() << "\n";
-    }
-    catch (...)
-    {
-        std::cout << "Unknown exception.\n";
-    }
+//    }
+//    catch (const std::runtime_error &re)
+//    {
+//        std::cerr << re.what() << "\n";
+//    }
+//    catch (...)
+//    {
+//        std::cout << "Unknown exception.\n";
+//    }
+
+    const size_t m_size = 2880;
+    size_t b_size = 36;
+    size_t num_th = 4;
+
+    double time_seq = 0.0, time_internal = 0.0, time_external = 0.0;
+
+    std::string path_a = "matrices/" + std::to_string(b_size) + "/a.txt";
+    std::string path_b = "matrices/" + std::to_string(b_size) + "/b.txt";
+    std::string path_etalon = "matrices/" + std::to_string(b_size) + "/etalon.txt";
+    std::map<std::pair<size_t, size_t>, double*> mmat_a = read_from_file<double>(m_size, b_size, path_a, 1);
+    std::map<std::pair<size_t, size_t>, double*> mmat_b = read_from_file<double>(m_size, b_size, path_b, 0);
+    double *etalon_lin_mat = read_etalon_from_file<double>(m_size, path_etalon);
+
+    double *lin_seq_mult = seq_block_mat_multiplication<double>(mmat_a, mmat_b, m_size, b_size, time_seq);
+    double *lin_int_mult = internal_parallel_block_mat_multiplication<double>(mmat_a, mmat_b, m_size, b_size, num_th, time_internal);
+    double *lin_ext_mult = external_parallel_block_mat_multiplication<double>(mmat_a, mmat_b, m_size, b_size, num_th, time_external);
+
+    bool compare_seq = compare_two_matrices<double>(lin_seq_mult, etalon_lin_mat, m_size, eps);
+    bool compare_int = compare_two_matrices<double>(lin_int_mult, etalon_lin_mat, m_size, eps);
+    bool compare_ext = compare_two_matrices<double>(lin_ext_mult, etalon_lin_mat, m_size, eps);
+
+    if (!compare_seq)
+        throw std::runtime_error("Wrong multiplication in 'seq_block_mat_multiplication function'\n");
+    if (!compare_int)
+        throw std::runtime_error("Wrong multiplication in 'internal_parallel_block_mat_multiplication function'\n");
+    if (!compare_ext)
+        throw std::runtime_error("Wrong multiplication in 'external_parallel_block_mat_multiplication function'\n");
+
+    //print information
+    std::cout << "Size block[ " << b_size << " ][ double ]\n";
+    std::cout << "Sequential multiplication time(s.):            " << time_seq << "\n";
+    std::cout << "Internal parallel multiplication time(s.):     " << time_internal << "\n";
+    std::cout << "External parallel multiplication time(s.):     " << time_external << "\n\n";
 
     return 0;
 }
