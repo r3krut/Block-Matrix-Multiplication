@@ -15,7 +15,6 @@
 <p> This repository contains the results of the tests for GCC compiler for two different types: double and float, respectively</p>
 <p> Later will be given the results of the tests for the Clang compiler or other</p>
 
-<br>
 
 <h3> Results </h3>
 
