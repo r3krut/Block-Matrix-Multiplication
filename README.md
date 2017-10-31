@@ -16,6 +16,11 @@
 <p> Later will be given the results of the tests for the Clang compiler or other</p>
 
 <br>
+<h3 align="center">Float type</h3>
+
+![Float type](https://cdn.rawgit.com/rekrut1993/Block-Matrix-Multiplication/ca5bfe0c/results/gcc/float/gcc_float.svg) 
+
+<br>
 <h3 align="center">Double type</h3>
 
-<p align="center"> ![Double type](https://cdn.rawgit.com/rekrut1993/Block-Matrix-Multiplication/77b23ee5/results/gcc/double/gcc_double.svg) </p>
+![Double type](https://cdn.rawgit.com/rekrut1993/Block-Matrix-Multiplication/77b23ee5/results/gcc/double/gcc_double.svg) 
