@@ -17,7 +17,7 @@
 
 <br>
 
-<div style="text-align:center" markdown="1">
+<div style="align:center" markdown="1">
 
    ![Float type](https://cdn.rawgit.com/rekrut1993/Block-Matrix-Multiplication/ca5bfe0c/results/gcc/float/gcc_float.svg) 
 
