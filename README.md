@@ -18,5 +18,4 @@
 <br>
 <h3 align="center">Double type</h3>
 
-<p align="center">
-![Double type](https://cdn.rawgit.com/rekrut1993/Block-Matrix-Multiplication/77b23ee5/results/gcc/double/gcc_double.svg)</p>
+<p align="center"> ![Double type](https://cdn.rawgit.com/rekrut1993/Block-Matrix-Multiplication/77b23ee5/results/gcc/double/gcc_double.svg) </p>
