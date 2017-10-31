@@ -19,18 +19,23 @@
 #include <exception>
 #include <list>
 #include <map>
+#include <cmath>
+#include <vector>
 #include <omp.h>
 
 //generate double numbers function
 double dRand();
+//generate float numbers
+float fRand();
 
 /**
- * @brief create_matrix - perform creation of matrix 'mat'
+ * @brief create_double_matrix - perform creation of matrix
  * @param n
  * @param _type - this is type of matrix: 0 - symmetric, 1 - top-triangular
  * @return double pointer
  */
-double** create_matrix(const size_t m_size, const bool _type);
+double** create_double_matrix(const size_t m_size, const bool _type);
+float** create_float_matrix(const size_t m_size, const bool _type);
 
 template<typename MTX_T>
 void release_matrix(MTX_T **&mat, const size_t m_size)
@@ -215,7 +220,7 @@ std::map<std::pair<size_t, size_t>, ELEM_T*> read_from_file(const size_t m_size,
         {
             //saving of a pointer to the beginning of block
             if (_type)
-                mat[std::make_pair(i, j)] = mat_elems + m_count; //for symmetric matrix
+                mat[std::make_pair(i, j)]= mat_elems + m_count; //for symmetric matrix
             else
                 mat[std::make_pair(j, i)] = mat_elems + m_count; //for top-triangular
 
@@ -245,6 +250,7 @@ std::map<std::pair<size_t, size_t>, ELEM_T*> read_from_file(const size_t m_size,
     return mat;
 }
 
+
 template<typename MTX_T>
 /**
  * @brief compare_two_matrices - compares two linear matrices.
@@ -253,12 +259,12 @@ template<typename MTX_T>
  * @param m_size - size of matices. lmat_a and lmat_b must have a same size
  * @return
  */
-inline bool compare_two_matrices(MTX_T *lmat_a, MTX_T *lmat_b, const size_t m_size)
+inline bool compare_two_matrices(MTX_T *lmat_a, MTX_T *lmat_b, const size_t m_size, const double &eps)
 {
     assert(lmat_a != NULL && lmat_b != NULL && m_size >= 2);
 
     for (size_t i = 0; i < m_size; i++)
-        if (lmat_a[i] != lmat_b[i])
+        if (std::fabs(lmat_a[i] - lmat_b[i]) > eps)
             return false;
     return true;
 }
@@ -301,9 +307,10 @@ template<typename MTX_T>
  * @param mat_b
  * @param n
  * @param num_thrds
+ * @param time
  * @return
  */
-MTX_T** parallel_multiplication(MTX_T **mat_a, MTX_T **mat_b, const size_t n, const int num_thrds)
+MTX_T** parallel_multiplication(MTX_T **mat_a, MTX_T **mat_b, const size_t n, const int num_thrds, double &time)
 {
     assert(mat_a != NULL && mat_b != NULL && n >= 2);
 
@@ -311,6 +318,7 @@ MTX_T** parallel_multiplication(MTX_T **mat_a, MTX_T **mat_b, const size_t n, co
     for (size_t i = 0; i < n; i++)
         mat_c[i] = new MTX_T[n];
 
+    std::chrono::steady_clock::time_point st = std::chrono::steady_clock::now();
 #pragma omp parallel for num_threads(num_thrds)
     for (size_t i = 0; i < n; i++)
         for (size_t j = 0; j < n; j++)
@@ -319,6 +327,8 @@ MTX_T** parallel_multiplication(MTX_T **mat_a, MTX_T **mat_b, const size_t n, co
             for (size_t k = 0; k < n; k++)
                 mat_c[i][j] += mat_a[i][k] * mat_b[k][j];
         }
+    std::chrono::steady_clock::time_point fn = std::chrono::steady_clock::now();
+    time = std::chrono::duration_cast<std::chrono::duration<double>>(fn - st).count();
 
     return mat_c;
 }
@@ -558,13 +568,24 @@ void print_matrix(MTX_T **mat, const size_t m_size)
     std::cout << "Size of matrix: " << m_size << "x" << m_size << "\n";
 }
 
+template<typename LMTX_T>
 /**
  * @brief write_to_file - write linear matrix to file
  * @param lin_mat - linear matrix
  * @param elems_count - real number of elements in the linear representation
  * @param file_name
  */
-void write_to_file(const double *lin_mat, const size_t elems_count, const std::string &file_name);
+void write_to_file(const LMTX_T *lin_mat, const size_t elems_count, const std::string &file_name)
+{
+    assert(lin_mat != NULL && elems_count > 0);
+
+    std::ofstream of(file_name);
+    if (!of.is_open())
+        throw std::runtime_error("File '" + file_name + "' dot't was created.\n");
+    for (size_t i = 0; i < elems_count; i++)
+        of << lin_mat[i] << " ";
+    of.close();
+}
 
 template<typename LMTX_T>
 LMTX_T* read_etalon_from_file(const size_t m_size, const std::string &file_name)
