@@ -60,9 +60,9 @@ std::tuple<std::list<std::pair<size_t, double> >,
     for (size_t i = 1; i < sizes.size(); i++)
     {
         double time_seq = 0.0, time_internal = 0.0, time_external = 0.0;
-        std::string path_a = "/home/rekrut/QTProjects/MultiplicationBlockMatrix/matrices/" + std::to_string(sizes[i]) + "/a.txt";
-        std::string path_b = "/home/rekrut/QTProjects/MultiplicationBlockMatrix/matrices/" + std::to_string(sizes[i]) + "/b.txt";
-        std::string path_etalon = "/home/rekrut/QTProjects/MultiplicationBlockMatrix/matrices/" + std::to_string(sizes[i]) + "/etalon.txt";
+        std::string path_a = "matrices/" + std::to_string(sizes[i]) + "/a.txt";
+        std::string path_b = "matrices/" + std::to_string(sizes[i]) + "/b.txt";
+        std::string path_etalon = "matrices/" + std::to_string(sizes[i]) + "/etalon.txt";
         std::map<std::pair<size_t, size_t>, float*> mmat_a = read_from_file<float>(m_size, sizes[i], path_a, 1);
         std::map<std::pair<size_t, size_t>, float*> mmat_b = read_from_file<float>(m_size, sizes[i], path_b, 0);
         float *etalon_lin_mat = read_etalon_from_file<float>(m_size, path_etalon);
@@ -120,9 +120,9 @@ std::tuple<std::list<std::pair<size_t, double> >,
     for (size_t i = 1; i < sizes.size(); i++)
     {
         double time_seq = 0.0, time_internal = 0.0, time_external = 0.0;
-        std::string path_a = "/home/rekrut/QTProjects/MultiplicationBlockMatrix/matrices/" + std::to_string(sizes[i]) + "/a.txt";
-        std::string path_b = "/home/rekrut/QTProjects/MultiplicationBlockMatrix/matrices/" + std::to_string(sizes[i]) + "/b.txt";
-        std::string path_etalon = "/home/rekrut/QTProjects/MultiplicationBlockMatrix/matrices/" + std::to_string(sizes[i]) + "/etalon.txt";
+        std::string path_a = "matrices/" + std::to_string(sizes[i]) + "/a.txt";
+        std::string path_b = "matrices/" + std::to_string(sizes[i]) + "/b.txt";
+        std::string path_etalon = "matrices/" + std::to_string(sizes[i]) + "/etalon.txt";
         std::map<std::pair<size_t, size_t>, double*> mmat_a = read_from_file<double>(m_size, sizes[i], path_a, 1);
         std::map<std::pair<size_t, size_t>, double*> mmat_b = read_from_file<double>(m_size, sizes[i], path_b, 0);
         double *etalon_lin_mat = read_etalon_from_file<double>(m_size, path_etalon);
