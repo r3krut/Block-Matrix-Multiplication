@@ -61,32 +61,13 @@ template<typename MTX_T>
  * @param b_size
  * @param _type - type of matix. 1 - symmetric, 0 - top-triangular
  */
-void release_map_matrix(std::map<std::pair<size_t, size_t>, MTX_T*> &m,
+void release_map_matrix(std::map<std::pair<size_t, size_t>, MTX_T*> &m/*,
                         const size_t m_size,
-                        const size_t b_size,
-                        bool _type)
+                        const size_t b_size*/)
 {
-    assert(m.size() > 0 && m_size >= 2 && b_size >= 1 && m_size % b_size == 0);
-
-    if (!_type)
-    {
-        auto it = m.begin();
-        delete [] (*it).second;
-    }
-    else
-    {
-        for (size_t i = 1; i < m_size / b_size; i++)
-        {
-            //delete all transpose blocks
-            for(size_t j = i + 1; j <= m_size / b_size; j++)
-            {
-                delete [] m[std::make_pair(i, j)];
-            }
-        }
-        //delete blocks which placed below a main diagonal
-        auto it = m.begin();
-        delete [] (*it).second;
-    }
+    //assert(m.size() > 0 && m_size >= 2 && b_size >= 1 && m_size % b_size == 0);
+    auto it = m.begin();
+    delete [] (*it).second;
 }
 
 template<typename MTX_T>
@@ -204,7 +185,12 @@ std::map<std::pair<size_t, size_t>, ELEM_T*> read_from_file(const size_t m_size,
 
     size_t elems_count = m_size*(m_size + b_size) / 2; //count of elements which will be stored
     std::map<std::pair<size_t, size_t>, ELEM_T*> mat;
-    ELEM_T* mat_elems = new ELEM_T[elems_count];
+    ELEM_T* mat_elems;
+
+    if (_type)
+        mat_elems = new ELEM_T[m_size*m_size];
+    else
+        mat_elems = new ELEM_T[elems_count];
 
     std::ifstream inf(file_name);
     if (!inf.is_open())
@@ -241,8 +227,16 @@ std::map<std::pair<size_t, size_t>, ELEM_T*> read_from_file(const size_t m_size,
         {
             for(size_t j = i + 1; j <= m_size / b_size; j++)
             {
-                ELEM_T* block = transpose_linear_matrix<ELEM_T>(mat[std::make_pair(j, i)], b_size);
-                mat[std::make_pair(i, j)] = block;
+                for (size_t k = 0; k < b_size; k++)
+                    for (size_t l = 0; l < b_size; l++)
+                    {
+                        if (k != l)
+                            *(mat_elems + m_count + l*b_size + k) = *(mat[std::make_pair(j, i)] + k*b_size + l);
+                        else
+                            *(mat_elems + m_count + l*b_size + l) = *(mat[std::make_pair(j, i)] + l*b_size + l);
+                    }
+                mat[std::make_pair(i, j)] = mat_elems + m_count;
+                m_count += b_size*b_size;
             }
         }
     }
@@ -264,8 +258,11 @@ inline bool compare_two_matrices(MTX_T *lmat_a, MTX_T *lmat_b, const size_t m_si
     assert(lmat_a != NULL && lmat_b != NULL && m_size >= 2);
 
     for (size_t i = 0; i < m_size; i++)
-        if (std::fabs(lmat_a[i] - lmat_b[i]) > eps)
+    {
+        MTX_T abs = std::abs(lmat_a[i] - lmat_b[i]);
+        if (abs > eps)
             return false;
+    }
     return true;
 }
 

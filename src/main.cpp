@@ -93,8 +93,8 @@ std::tuple<std::list<std::pair<size_t, double> >,
         std::cout << "Internal parallel multiplication time(s.):     " << time_internal << "\n";
         std::cout << "External parallel multiplication time(s.):     " << time_external << "\n\n";
 
-        release_map_matrix<float>(mmat_a, m_size, sizes[i], 1);
-        release_map_matrix<float>(mmat_b, m_size, sizes[i], 0);
+        release_map_matrix(mmat_a);
+        release_map_matrix(mmat_b);
         release_linear_mtx<float>(etalon_lin_mat);
 
         release_linear_mtx<float>(lin_seq_mult);
@@ -153,8 +153,8 @@ std::tuple<std::list<std::pair<size_t, double> >,
         std::cout << "Internal parallel multiplication time(s.):     " << time_internal << "\n";
         std::cout << "External parallel multiplication time(s.):     " << time_external << "\n\n";
 
-        release_map_matrix<double>(mmat_a, m_size, sizes[i], 1);
-        release_map_matrix<double>(mmat_b, m_size, sizes[i], 0);
+        release_map_matrix(mmat_a);
+        release_map_matrix(mmat_b);
 
         release_linear_mtx<double>(etalon_lin_mat);
         release_linear_mtx<double>(lin_seq_mult);
@@ -166,9 +166,11 @@ std::tuple<std::list<std::pair<size_t, double> >,
 
 int main(int argc, char *argv[])
 {
-    std::srand( (unsigned) time(0) );
+//    std::srand( (unsigned) time(0) );
 
-    //generate_files(m_size);
+//    const size_t m_size = 2880;
+
+//    generate_files(m_size);
 
 //    try
 //    {
@@ -181,13 +183,13 @@ int main(int argc, char *argv[])
 //                   std::list<std::pair<size_t, double> >,
 //                   std::list<std::pair<size_t, double> > > double_test = perform_double_test(m_size, 4);
 
-//        create_csv_file(std::get<0>(float_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/clang/float/seq_float.csv");
-//        create_csv_file(std::get<1>(float_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/clang/float/int_float.csv");
-//        create_csv_file(std::get<2>(float_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/clang/float/ext_float.csv");
+//        create_csv_file(std::get<0>(float_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/gcc/float/seq_float.csv");
+//        create_csv_file(std::get<1>(float_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/gcc/float/int_float.csv");
+//        create_csv_file(std::get<2>(float_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/gcc/float/ext_float.csv");
 
-//        create_csv_file(std::get<0>(double_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/clang/double/seq_double.csv");
-//        create_csv_file(std::get<1>(double_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/clang/double/int_double.csv");
-//        create_csv_file(std::get<2>(double_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/clang/double/ext_double.csv");
+//        create_csv_file(std::get<0>(double_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/gcc/double/seq_double.csv");
+//        create_csv_file(std::get<1>(double_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/gcc/double/int_double.csv");
+//        create_csv_file(std::get<2>(double_test), "/home/rekrut/QTProjects/MultiplicationBlockMatrix/results/gcc/double/ext_double.csv");
 //    }
 //    catch (const std::runtime_error &re)
 //    {
@@ -209,15 +211,17 @@ int main(int argc, char *argv[])
     std::string path_etalon = "matrices/" + std::to_string(b_size) + "/etalon.txt";
     std::map<std::pair<size_t, size_t>, double*> mmat_a = read_from_file<double>(m_size, b_size, path_a, 1);
     std::map<std::pair<size_t, size_t>, double*> mmat_b = read_from_file<double>(m_size, b_size, path_b, 0);
+
+
     double *etalon_lin_mat = read_etalon_from_file<double>(m_size, path_etalon);
 
     double *lin_seq_mult = seq_block_mat_multiplication<double>(mmat_a, mmat_b, m_size, b_size, time_seq);
     double *lin_int_mult = internal_parallel_block_mat_multiplication<double>(mmat_a, mmat_b, m_size, b_size, num_th, time_internal);
     double *lin_ext_mult = external_parallel_block_mat_multiplication<double>(mmat_a, mmat_b, m_size, b_size, num_th, time_external);
 
-    bool compare_seq = compare_two_matrices<double>(lin_seq_mult, etalon_lin_mat, m_size, eps);
-    bool compare_int = compare_two_matrices<double>(lin_int_mult, etalon_lin_mat, m_size, eps);
-    bool compare_ext = compare_two_matrices<double>(lin_ext_mult, etalon_lin_mat, m_size, eps);
+    bool compare_seq = compare_two_matrices(lin_seq_mult, etalon_lin_mat, m_size, eps);
+    bool compare_int = compare_two_matrices(lin_int_mult, etalon_lin_mat, m_size, eps);
+    bool compare_ext = compare_two_matrices(lin_ext_mult, etalon_lin_mat, m_size, eps);
 
     if (!compare_seq)
         throw std::runtime_error("Wrong multiplication in 'seq_block_mat_multiplication function'\n");
@@ -231,6 +235,14 @@ int main(int argc, char *argv[])
     std::cout << "Sequential multiplication time(s.):            " << time_seq << "\n";
     std::cout << "Internal parallel multiplication time(s.):     " << time_internal << "\n";
     std::cout << "External parallel multiplication time(s.):     " << time_external << "\n\n";
+
+    release_map_matrix(mmat_a);
+    release_map_matrix(mmat_b);
+
+    release_linear_mtx<double>(etalon_lin_mat);
+    release_linear_mtx<double>(lin_seq_mult);
+    release_linear_mtx<double>(lin_int_mult);
+    release_linear_mtx<double>(lin_ext_mult);
 
     return 0;
 }
