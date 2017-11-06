@@ -6,21 +6,30 @@
 <ul>
  <li>Sequential block multiplication</li>
  <li>Internal parallelization of two blocks</li>
- <li>External parallelization of sycle of multiplication</li>
+ <li>External parallelization of sycle of multiplication(When two different blocks multiply on two different cores)</li>
 </ul>
+
+
+<p style="color: blue; font-size: 16pt;"><b>Requirements:</b></p>
+<ol>
+ <li>Matrix A must be a symmetrical and stored as a low-triangle matrix by rows</li>
+ <li>Matrix B must be a top-triangular and stored without zeros by columns</li>
+</ol>
 
 <p>Internal and external parallelization based on OpenMP technology</p> 
 <br>
 
-<p> This repository contains the results of the tests for GCC compiler for two different types: double and float, respectively</p>
-<p> Later will be given the results of the tests for the Clang compiler or other</p>
+<p> This repository contains the results of the tests for GCC and Clang compilers for two different types: double and float, respectively</p>
+
+<h3> Results of Clang </h3>
+
+![Float clang](https://rawgit.com/rekrut1993/Block-Matrix-Multiplication/master/results/clang/float/clang_float.svg)
+
+![Double clang](https://rawgit.com/rekrut1993/Block-Matrix-Multiplication/master/results/clang/double/clang_double.svg) 
 
 
-<h3> Results </h3>
+<h3> Results of GCC </h3>
 
-![Float type](https://cdn.rawgit.com/rekrut1993/Block-Matrix-Multiplication/ca5bfe0c/results/gcc/float/gcc_float.svg) 
+![Float gcc](https://rawgit.com/rekrut1993/Block-Matrix-Multiplication/master/results/gcc/float/gcc_float.svg)
 
-<br>
-
-![Double type](https://cdn.rawgit.com/rekrut1993/Block-Matrix-Multiplication/77b23ee5/results/gcc/double/gcc_double.svg) 
-
+![Double gcc](https://rawgit.com/rekrut1993/Block-Matrix-Multiplication/master/results/gcc/double/gcc_double.svg) 
